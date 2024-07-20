@@ -5,8 +5,11 @@
 //  Created by Kevin Hermawan on 08/06/24.
 //
 
-import Combine
+import OpenCombine
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 internal struct OKHTTPClient {
     private let decoder: JSONDecoder = .default
@@ -58,6 +61,14 @@ internal extension OKHTTPClient {
         }
     }
 }
+
+extension Publisher where Output == URLSession.DataTaskPublisher.Output {
+    func decode<Item, Coder>(type: Item.Type, decoder: Coder) -> Publishers.TryMap<Self, Item> where Item: Decodable, Coder: TopLevelDecoder, Coder.Input == Data {
+        return tryMap { try decoder.decode(type, from: $0.data) }
+    }
+}
+
+extension JSONDecoder: TopLevelDecoder {}
 
 internal extension OKHTTPClient {
     func send<T: Decodable>(request: URLRequest, with responseType: T.Type) -> AnyPublisher<T, Error> {
@@ -158,3 +169,102 @@ private extension OKHTTPClient {
         return nil
     }
 }
+
+
+class StreamDelegate: NSObject, URLSessionDataDelegate {
+    private var dataContinuation: AsyncThrowingStream<UInt8, Error>.Continuation?
+    private var responseContinuation: CheckedContinuation<URLResponse, Error>?
+    
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse) {
+        responseContinuation?.resume(returning: response)
+        responseContinuation = nil
+    }
+    
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        for byte in data {
+            dataContinuation?.yield(byte)
+        }
+    }
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        if let error = error {
+            dataContinuation?.finish(throwing: error)
+        } else {
+            dataContinuation?.finish()
+        }
+        responseContinuation = nil
+    }
+    
+    func startRequest(with url: URLRequest, session: URLSession) async throws -> (AsyncThrowingStream<UInt8, Error>, URLResponse) {
+        let stream = AsyncThrowingStream<UInt8, Error> { continuation in
+            self.dataContinuation = continuation
+        }
+        
+        let response = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URLResponse, Error>) in
+            self.responseContinuation = continuation
+            let task = session.dataTask(with: url)
+            task.resume()
+        }
+        
+        return (stream, response)
+    }
+}
+
+extension URLSession {
+    public func bytes(for request: URLRequest) async throws -> (AsyncThrowingStream<UInt8, Error>, URLResponse) {
+        let streamDelegate = StreamDelegate()
+        return try await streamDelegate.startRequest(with: request, session: self)
+    }
+}
+
+extension URLSession {
+    struct DataTaskPublisher: Publisher {
+        typealias Output = (data: Data, response: URLResponse)
+        typealias Failure = URLError
+
+        let session: URLSession
+        let request: URLRequest
+
+        func receive<S>(subscriber: S) where S : Subscriber, URLError == S.Failure, (data: Data, response: URLResponse) == S.Input {
+            let subscription = DataTaskSubscription(subscriber: subscriber, session: session, request: request)
+            subscriber.receive(subscription: subscription)
+        }
+
+        private final class DataTaskSubscription<S: Subscriber>: Subscription where S.Input == (data: Data, response: URLResponse), S.Failure == URLError {
+            private var subscriber: S?
+            private var task: URLSessionDataTask?
+
+            init(subscriber: S, session: URLSession, request: URLRequest) {
+                self.subscriber = subscriber
+                self.task = session.dataTask(with: request) { data, response, error in
+                    if let error = error as? URLError {
+                        subscriber.receive(completion: .failure(error))
+                    } else if let data = data, let response = response {
+                        _ = subscriber.receive((data: data, response: response))
+                        subscriber.receive(completion: .finished)
+                    }
+                }
+            }
+
+            func request(_ demand: Subscribers.Demand) {
+                task?.resume()
+            }
+
+            func cancel() {
+                task?.cancel()
+                task = nil
+                subscriber = nil
+            }
+        }
+    }
+
+    /// Returns a publisher that wraps a URL session data task for a given URL.
+    ///
+    /// The publisher publishes data when the task completes, or terminates if the task fails with an error.
+    /// - Parameter url: The URL for which to create a data task.
+    /// - Returns: A publisher that wraps a data task for the URL.
+    func dataTaskPublisher(for request: URLRequest) -> DataTaskPublisher {
+        return DataTaskPublisher(session: self, request: request)
+    }
+}
+

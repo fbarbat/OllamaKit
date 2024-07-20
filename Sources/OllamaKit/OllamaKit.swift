@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Provides a streamlined way to access the Ollama API, encapsulating the complexities of network communication and data processing.
 public struct OllamaKit {

@@ -5,8 +5,11 @@
 //  Created by Paul Thrasher on 02/09/24.
 //
 
-import Combine
+import OpenCombine
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 extension OllamaKit {
     /// Asynchronously generates embeddings from a specific model from the Ollama API.

@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// A structure that encapsulates the data required for generating responses using the Ollama API.
 public struct OKGenerateRequestData: Encodable {

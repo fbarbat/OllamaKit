@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// A structure that encapsulates the necessary data to request a model copy operation in the Ollama API.
 public struct OKCopyModelRequestData: Encodable {

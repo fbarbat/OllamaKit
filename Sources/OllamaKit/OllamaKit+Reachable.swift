@@ -5,8 +5,11 @@
 //  Created by Kevin Hermawan on 01/01/24.
 //
 
-import Combine
+import OpenCombine
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 extension OllamaKit {
     /// Asynchronously checks if the Ollama API is reachable.
