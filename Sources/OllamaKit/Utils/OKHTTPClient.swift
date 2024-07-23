@@ -62,7 +62,7 @@ internal extension OKHTTPClient {
     }
 }
 
-extension Publisher where Output == URLSession.DataTaskPublisher.Output {
+extension Publisher where Output == URLSession.CustomDataTaskPublisher.Output {
     func decode<Item, Coder>(type: Item.Type, decoder: Coder) -> Publishers.TryMap<Self, Item> where Item: Decodable, Coder: TopLevelDecoder, Coder.Input == Data {
         return tryMap { try decoder.decode(type, from: $0.data) }
     }
@@ -218,7 +218,7 @@ extension URLSession {
 }
 
 extension URLSession {
-    struct DataTaskPublisher: Publisher {
+    struct CustomDataTaskPublisher: Publisher {
         typealias Output = (data: Data, response: URLResponse)
         typealias Failure = URLError
 
@@ -263,8 +263,8 @@ extension URLSession {
     /// The publisher publishes data when the task completes, or terminates if the task fails with an error.
     /// - Parameter url: The URL for which to create a data task.
     /// - Returns: A publisher that wraps a data task for the URL.
-    func dataTaskPublisher(for request: URLRequest) -> DataTaskPublisher {
-        return DataTaskPublisher(session: self, request: request)
+    func dataTaskPublisher(for request: URLRequest) -> CustomDataTaskPublisher {
+        return CustomDataTaskPublisher(session: self, request: request)
     }
 }
 
