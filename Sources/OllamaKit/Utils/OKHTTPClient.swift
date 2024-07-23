@@ -68,7 +68,7 @@ extension Publisher where Output == URLSession.CustomDataTaskPublisher.Output {
     }
 }
 
-extension JSONDecoder: TopLevelDecoder {}
+extension JSONDecoder: @retroactive TopLevelDecoder {}
 
 internal extension OKHTTPClient {
     func send<T: Decodable>(request: URLRequest, with responseType: T.Type) -> AnyPublisher<T, Error> {
@@ -171,13 +171,35 @@ private extension OKHTTPClient {
 }
 
 
-class StreamDelegate: NSObject, URLSessionDataDelegate {
+class StreamDelegate: NSObject {
     private var dataContinuation: AsyncThrowingStream<UInt8, Error>.Continuation?
     private var responseContinuation: CheckedContinuation<URLResponse, Error>?
     
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse) {
+    func startRequest(with url: URLRequest, session: URLSession) async throws -> (AsyncThrowingStream<UInt8, Error>, URLResponse) {
+        let stream = AsyncThrowingStream<UInt8, Error> { continuation in
+            self.dataContinuation = continuation
+        }
+        
+        let response = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URLResponse, Error>) in
+            self.responseContinuation = continuation
+            let task = session.dataTask(with: url)
+            task.delegate = self
+            task.resume()
+        }
+        
+        return (stream, response)
+    }
+    
+    deinit {
+        print("deinited")
+    }
+}
+
+extension StreamDelegate: URLSessionDataDelegate {
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         responseContinuation?.resume(returning: response)
         responseContinuation = nil
+        completionHandler(.allow)
     }
     
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
@@ -193,20 +215,6 @@ class StreamDelegate: NSObject, URLSessionDataDelegate {
             dataContinuation?.finish()
         }
         responseContinuation = nil
-    }
-    
-    func startRequest(with url: URLRequest, session: URLSession) async throws -> (AsyncThrowingStream<UInt8, Error>, URLResponse) {
-        let stream = AsyncThrowingStream<UInt8, Error> { continuation in
-            self.dataContinuation = continuation
-        }
-        
-        let response = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URLResponse, Error>) in
-            self.responseContinuation = continuation
-            let task = session.dataTask(with: url)
-            task.resume()
-        }
-        
-        return (stream, response)
     }
 }
 

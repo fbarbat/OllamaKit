@@ -53,4 +53,22 @@ final class OllamaKitTests: XCTestCase {
     func testEmbeddingsFailure() async throws {
         
     }
+    
+    func testChat() async throws {
+        let ollamaKit = OllamaKit()
+
+        print("Sending messages")
+        
+        var receivedContent = false
+
+        for try await response in ollamaKit.chat(data: .init(model: "llama3", messages: [.init(role: .user, content: "hello")])) {
+            if let content = response.message?.content {
+                receivedContent = true
+                print(content)
+            }
+        }
+        
+        print("Done")
+        XCTAssertTrue(receivedContent)
+    }
 }
