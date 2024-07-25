@@ -189,10 +189,6 @@ class StreamDelegate: NSObject {
         
         return (stream, response)
     }
-    
-    deinit {
-        print("deinited")
-    }
 }
 
 extension StreamDelegate: URLSessionDataDelegate {
