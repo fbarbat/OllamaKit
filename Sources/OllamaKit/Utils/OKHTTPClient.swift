@@ -34,7 +34,7 @@ internal extension OKHTTPClient {
         return AsyncThrowingStream { continuation in
             Task {
                 do {
-                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
+                    let (bytes, response) = try await request.bytes()
                     try validate(response: response)
                     
                     var buffer = Data()
@@ -171,21 +171,21 @@ private extension OKHTTPClient {
 }
 
 
-class StreamDelegate: NSObject {
+final class StreamDelegate: NSObject {
     private var dataContinuation: AsyncThrowingStream<UInt8, Error>.Continuation?
     private var responseContinuation: CheckedContinuation<URLResponse, Error>?
     
-    func startRequest(with url: URLRequest, session: URLSession) async throws -> (AsyncThrowingStream<UInt8, Error>, URLResponse) {
+    func startRequest(with url: URLRequest) async throws -> (AsyncThrowingStream<UInt8, Error>, URLResponse) {
         let stream = AsyncThrowingStream<UInt8, Error> { continuation in
             self.dataContinuation = continuation
         }
         
         let response = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<URLResponse, Error>) in
             self.responseContinuation = continuation
+            let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
             let task = session.dataTask(with: url)
-            task.delegate = self
             task.resume()
-        }
+        } 
         
         return (stream, response)
     }
@@ -210,14 +210,16 @@ extension StreamDelegate: URLSessionDataDelegate {
         } else {
             dataContinuation?.finish()
         }
+        
         responseContinuation = nil
     }
 }
 
-extension URLSession {
-    public func bytes(for request: URLRequest) async throws -> (AsyncThrowingStream<UInt8, Error>, URLResponse) {
+extension URLRequest {
+    public func bytes() async throws -> (AsyncThrowingStream<UInt8, Error>, URLResponse) {
+        // This is retained until the task finishes
         let streamDelegate = StreamDelegate()
-        return try await streamDelegate.startRequest(with: request, session: self)
+        return try await streamDelegate.startRequest(with: self)
     }
 }
 
