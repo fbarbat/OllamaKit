@@ -8,20 +8,22 @@ let package = Package(
     platforms: [
         .iOS(.v15),
         .macOS(.v12),
-        .macCatalyst(.v15)
+        .macCatalyst(.v15),
     ],
     products: [
         .library(
             name: "OllamaKit",
-            targets: ["OllamaKit"]),
+            targets: ["OllamaKit"])
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-docc-plugin.git", .upToNextMajor(from: "1.3.0"))
+        .package(
+            url: "https://github.com/apple/swift-docc-plugin.git", .upToNextMajor(from: "1.3.0")),
+        .package(url: "https://github.com/OpenCombine/OpenCombine.git", from: "0.14.0"),
     ],
     targets: [
         .target(
             name: "OllamaKit",
-            dependencies: []),
+            dependencies: ["OpenCombine"]),
         .testTarget(
             name: "OllamaKitTests",
             dependencies: ["OllamaKit"]),

@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// A structure that represents the response to a chat request from the Ollama API.
 public struct OKChatResponse: OKCompletionResponse, Decodable {

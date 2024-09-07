@@ -5,8 +5,11 @@
 //  Created by Kevin Hermawan on 09/06/24.
 //
 
-import Combine
+import OpenCombine
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 internal class StreamingDelegate: NSObject, URLSessionDataDelegate {
     private let subject = PassthroughSubject<Data, URLError>()

@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 internal enum OKRouter {
     static var baseURL = URL(string: "http://localhost:11434")!

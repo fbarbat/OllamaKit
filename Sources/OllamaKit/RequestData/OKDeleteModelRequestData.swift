@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// A structure that encapsulates the necessary data to request a model deletion in the Ollama API.
 public struct OKDeleteModelRequestData: Encodable {

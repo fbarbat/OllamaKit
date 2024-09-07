@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// A structure that encapsulates options for controlling the behavior of content generation in the Ollama API.
 public struct OKCompletionOptions: Encodable {

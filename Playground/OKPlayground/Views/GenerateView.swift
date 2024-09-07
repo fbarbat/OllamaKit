@@ -5,7 +5,7 @@
 //  Created by Kevin Hermawan on 09/06/24.
 //
 
-import Combine
+import OpenCombine
 import SwiftUI
 import OllamaKit
 

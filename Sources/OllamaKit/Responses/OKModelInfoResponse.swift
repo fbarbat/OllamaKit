@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// A structure that represents the response containing information about a specific model from the Ollama API.
 public struct OKModelInfoResponse: Decodable {

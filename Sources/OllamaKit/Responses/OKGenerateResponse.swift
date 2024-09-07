@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// A structure that represents the response to a content generation request from the Ollama API.
 public struct OKGenerateResponse: OKCompletionResponse, Decodable {

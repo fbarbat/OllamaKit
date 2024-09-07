@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// A structure that encapsulates data for chat requests to the Ollama API.
 public struct OKChatRequestData: Encodable {

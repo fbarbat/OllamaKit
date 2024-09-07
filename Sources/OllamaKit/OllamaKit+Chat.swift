@@ -5,8 +5,11 @@
 //  Created by Kevin Hermawan on 02/01/24.
 //
 
-import Combine
+import OpenCombine
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 extension OllamaKit {
     /// Establishes an asynchronous stream for chat responses from the Ollama API, based on the provided data.
